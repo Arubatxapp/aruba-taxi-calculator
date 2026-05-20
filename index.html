@@ -354,13 +354,20 @@
             }
 
             try {
-                const response = await fetch('/fare/api/search', {
+                const response = await fetch('/api/search', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ query: input.value })
                 });
 
+                if (!response.ok) {
+                    console.error('Search API returned', response.status, await response.text());
+                    listEl.style.display = 'none';
+                    return;
+                }
+
                 const results = await response.json();
+                console.log('Search results:', results);
                 listEl.innerHTML = '';
 
                 if (!results || results.length === 0) {
@@ -435,7 +442,7 @@
             if (!pickupLocation || !dropoffLocation) return;
 
             try {
-                const response = await fetch('/fare/api/distance', {
+                const response = await fetch('/api/distance', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -443,6 +450,11 @@
                         destination: { lat: dropoffLocation.lat, lng: dropoffLocation.lng }
                     })
                 });
+
+                if (!response.ok) {
+                    console.error('Distance API returned', response.status, await response.text());
+                    return;
+                }
 
                 const data = await response.json();
                 distance = data.distance;
