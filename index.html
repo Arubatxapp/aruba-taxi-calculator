@@ -92,6 +92,10 @@
             border-bottom: 1px solid #f0f4f8;
             font-size: 13px;
             color: #1e5a8e;
+            white-space: normal;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.4;
         }
 
         .autocomplete-item:hover {
@@ -350,7 +354,7 @@
             }
 
             try {
-                const response = await fetch('/api/search', {
+                const response = await fetch('/fare/api/search', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ query: input.value })
@@ -369,7 +373,9 @@
                     item.className = 'autocomplete-item';
                     item.textContent = place.formatted_address;
                     item.onclick = () => {
-                        input.value = place.formatted_address;
+                        const displayName = place.formatted_address.split(',')[0].trim();
+                        input.value = displayName;
+                        input.title = place.formatted_address;
                         listEl.style.display = 'none';
 
                         if (type === 'pickup') {
@@ -429,7 +435,7 @@
             if (!pickupLocation || !dropoffLocation) return;
 
             try {
-                const response = await fetch('/api/distance', {
+                const response = await fetch('/fare/api/distance', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
