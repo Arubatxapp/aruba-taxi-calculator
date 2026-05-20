@@ -127,39 +127,6 @@
             font-size: 13px;
         }
 
-        .buttons {
-            display: flex;
-            gap: 12px;
-            margin: 30px 0;
-        }
-
-        button {
-            flex: 1;
-            padding: 14px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-calculate {
-            background: linear-gradient(135deg, #1e5a8e 0%, #d4af37 100%);
-            color: white;
-        }
-
-        .btn-calculate:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(30, 90, 142, 0.3);
-        }
-
-        .btn-reset {
-            background: #f0f4f8;
-            color: #1e5a8e;
-            border: 2px solid #d4af37;
-        }
-
         .result {
             display: none;
             margin-top: 30px;
@@ -226,6 +193,27 @@
             margin-left: 8px;
             display: none;
         }
+
+        .reset-wrapper {
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .btn-reset-small {
+            background: transparent;
+            color: #1e5a8e;
+            border: 1px solid #d4af37;
+            padding: 8px 28px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-reset-small:hover {
+            background: #f0f4f8;
+        }
     </style>
 </head>
 <body>
@@ -266,9 +254,6 @@
                 </div>
             </div>
 
-            <div class="buttons">
-                <button type="reset" class="btn-reset">Reset</button>
-            </div>
         </form>
 
         <div class="result" id="result">
@@ -312,6 +297,10 @@
                     <span id="totalFareDisplay">$0.00</span>
                 </div>
             </div>
+        </div>
+
+        <div class="reset-wrapper">
+            <button type="reset" form="calcForm" class="btn-reset-small">Reset</button>
         </div>
     </div>
 
