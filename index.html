@@ -53,19 +53,24 @@
             margin-bottom: 10px;
         }
 
-        .rates-link {
-            font-size: 13px;
+        .site-footer {
+            margin-top: 28px;
+            padding-top: 16px;
+            border-top: 1px solid #eee;
+            text-align: center;
+            font-size: 11px;
+            color: #888;
+            line-height: 1.5;
         }
 
-        .rates-link a {
-            color: #1e5a8e;
+        .site-footer a {
+            color: #888;
             text-decoration: none;
-            border-bottom: 1px solid #f4c542;
-            padding-bottom: 1px;
         }
 
-        .rates-link a:hover {
-            color: #f4c542;
+        .site-footer a:hover {
+            color: #1e5a8e;
+            text-decoration: underline;
         }
 
         .form-group {
@@ -318,11 +323,6 @@
         <div class="header">
             <img src="/logo.webp" alt="ArubaTaxiApp" class="header-logo">
             <h1>Aruba Taxi Fare</h1>
-            <p class="rates-link">
-                <a href="https://www.taxi.aw" target="_blank" rel="noopener">
-                    View official rates &amp; conditions on taxi.aw (Government of Aruba)
-                </a>
-            </p>
         </div>
 
         <form id="calcForm">
@@ -413,6 +413,12 @@
         <div class="reset-wrapper">
             <button type="reset" form="calcForm" class="btn-reset-small">Reset</button>
         </div>
+
+        <footer class="site-footer">
+            <a href="https://www.taxi.aw" target="_blank" rel="noopener">
+                Based on official rates &amp; conditions from taxi.aw (Government of Aruba)
+            </a>
+        </footer>
     </div>
 
     <script>
