@@ -350,7 +350,7 @@
             }
 
             try {
-                const response = await fetch('/fare/api/search', {
+                const response = await fetch('/api/search', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ query: input.value })
@@ -429,7 +429,7 @@
             if (!pickupLocation || !dropoffLocation) return;
 
             try {
-                const response = await fetch('/fare/api/distance', {
+                const response = await fetch('/api/distance', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
