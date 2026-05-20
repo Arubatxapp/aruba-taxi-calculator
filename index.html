@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aruba Taxi Fare Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e5a8e 0%, #2d7cb8 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #d4af37;
+            padding-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #1e5a8e;
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #1e5a8e;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #d4af37;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #f8f9fa;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #1e5a8e;
+            background: white;
+        }
+
+        .autocomplete-list {
+            position: absolute;
+            background: white;
+            border: 2px solid #d4af37;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            width: 100%;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .autocomplete-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f4f8;
+            font-size: 13px;
+            color: #1e5a8e;
+        }
+
+        .autocomplete-item:hover {
+            background: #f0f4f8;
+        }
+
+        .location-input-wrapper {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .checkbox-item label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 12px;
+            margin: 30px 0;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-calculate {
+            background: linear-gradient(135deg, #1e5a8e 0%, #d4af37 100%);
+            color: white;
+        }
+
+        .btn-calculate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(30, 90, 142, 0.3);
+        }
+
+        .btn-reset {
+            background: #f0f4f8;
+            color: #1e5a8e;
+            border: 2px solid #d4af37;
+        }
+
+        .result {
+            display: none;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 3px solid #d4af37;
+        }
+
+        .total-fare {
+            background: linear-gradient(135deg, #1e5a8e 0%, #2d7cb8 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 3px solid #d4af37;
+        }
+
+        .total-fare-label {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .total-fare-amount {
+            font-size: 48px;
+            font-weight: 800;
+        }
+
+        .breakdown {
+            background: #f0f4f8;
+            border-radius: 8px;
+            padding: 20px;
+            border: 2px solid #d4af37;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            color: #1e5a8e;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .breakdown-item.hidden {
+            display: none;
+        }
+
+        .breakdown-total {
+            display: flex;
+            justify-content: space-between;
+            padding-top: 15px;
+            border-top: 2px solid #d4af37;
+            font-weight: 800;
+            color: #1e5a8e;
+            margin-top: 15px;
+            font-size: 16px;
+        }
+
+        .min-fare-badge {
+            color: #ff9800;
+            font-size: 11px;
+            font-weight: 700;
+            margin-left: 8px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚕 Aruba Taxi Fare</h1>
+            <p style="color: #d4af37;"><a href="https://www.taxi.aw" target="_blank" style="color: #d4af37; text-decoration: none;">📋 Official Rates</a></p>
+        </div>
+
+        <form id="calcForm">
+            <div class="location-input-wrapper">
+                <label for="pickup">Pickup Location</label>
+                <input type="text" id="pickup" placeholder="Type location..." autocomplete="off">
+                <div class="autocomplete-list" id="pickupList"></div>
+            </div>
+
+            <div class="location-input-wrapper">
+                <label for="dropoff">Dropoff Location</label>
+                <input type="text" id="dropoff" placeholder="Type location..." autocomplete="off">
+                <div class="autocomplete-list" id="dropoffList"></div>
+            </div>
+
+            <div id="distanceDisplay" style="text-align: center; background: #f0f4f8; padding: 15px; border-radius: 8px; border: 2px solid #d4af37; margin-bottom: 20px; display: none;">
+                <div style="color: #1e5a8e; font-weight: 700; font-size: 14px; margin-bottom: 5px;">Distance</div>
+                <div style="color: #d4af37; font-size: 24px; font-weight: 800;" id="distanceValue">0 km</div>
+            </div>
+
+            <div class="form-group">
+                <label for="passengers">Passengers</label>
+                <input type="number" id="passengers" min="1" max="20" value="1">
+            </div>
+
+            <div class="form-group">
+                <label>Location Type</label>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="airport">
+                    <label for="airport">Airport (+$10)</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="aviation">
+                    <label for="aviation">Aviation (+$15)</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="luggage">Extra Luggage (pieces)</label>
+                <input type="number" id="luggage" min="0" value="0">
+            </div>
+
+            <div class="form-group">
+                <label>Surcharges</label>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="trunk">
+                    <label for="trunk">Trunk Use (+$3)</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="holiday">
+                    <label for="holiday">Holiday/Night (+$5)</label>
+                </div>
+            </div>
+
+            <div class="buttons">
+                <button type="button" class="btn-calculate" onclick="calculate()">Calculate</button>
+                <button type="reset" class="btn-reset">Reset</button>
+            </div>
+        </form>
+
+        <div class="result" id="result">
+            <div class="total-fare">
+                <div class="total-fare-label">Total Fare</div>
+                <div class="total-fare-amount" id="totalFare">$0.00</div>
+            </div>
+
+            <div class="breakdown">
+                <div class="breakdown-item">
+                    <span>Base Fare</span>
+                    <span id="baseFareDisplay">$0.00</span>
+                </div>
+                <div class="breakdown-item" id="distanceRow">
+                    <span>Distance (<span id="kmDisplay">0</span> km × $2)</span>
+                    <span id="distanceFareDisplay">$0.00</span>
+                </div>
+                <div class="breakdown-item hidden" id="passengerRow">
+                    <span>Extra Passengers</span>
+                    <span id="passengerFareDisplay">$0.00</span>
+                </div>
+                <div class="breakdown-item hidden" id="locationRow">
+                    <span id="locationLabel">Location</span>
+                    <span id="locationFareDisplay">$0.00</span>
+                </div>
+                <div class="breakdown-item hidden" id="luggageRow">
+                    <span>Luggage</span>
+                    <span id="luggageFareDisplay">$0.00</span>
+                </div>
+                <div class="breakdown-item hidden" id="trunkRow">
+                    <span>Trunk Use</span>
+                    <span id="trunkFareDisplay">$0.00</span>
+                </div>
+                <div class="breakdown-item hidden" id="holidayRow">
+                    <span>Holiday/Night</span>
+                    <span id="holidayFareDisplay">$0.00</span>
+                </div>
+
+                <div class="breakdown-total">
+                    <span>Total <span class="min-fare-badge" id="minFareBadge">✓ Min Fare</span></span>
+                    <span id="totalFareDisplay">$0.00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pickupLocation = null;
+        let dropoffLocation = null;
+        let distance = 0;
+
+        const pickupInput = document.getElementById('pickup');
+        const dropoffInput = document.getElementById('dropoff');
+        const pickupList = document.getElementById('pickupList');
+        const dropoffList = document.getElementById('dropoffList');
+
+        async function searchPlaces(input, listEl, type) {
+            if (input.value.length < 2) {
+                listEl.style.display = 'none';
+                return;
+            }
+
+            try {
+                const response = await fetch('/fare/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: input.value })
+                });
+
+                const results = await response.json();
+                listEl.innerHTML = '';
+
+                if (!results || results.length === 0) {
+                    listEl.style.display = 'none';
+                    return;
+                }
+
+                results.slice(0, 5).forEach(place => {
+                    const item = document.createElement('div');
+                    item.className = 'autocomplete-item';
+                    item.textContent = place.formatted_address;
+                    item.onclick = () => {
+                        input.value = place.formatted_address;
+                        listEl.style.display = 'none';
+
+                        if (type === 'pickup') {
+                            pickupLocation = {
+                                lat: place.lat,
+                                lng: place.lng,
+                                name: place.formatted_address
+                            };
+                            if (place.formatted_address.toLowerCase().includes('airport') || place.formatted_address.toLowerCase().includes('beatrix')) {
+                                document.getElementById('airport').checked = true;
+                                document.getElementById('aviation').checked = false;
+                            }
+                        } else {
+                            dropoffLocation = {
+                                lat: place.lat,
+                                lng: place.lng,
+                                name: place.formatted_address
+                            };
+                            if (place.formatted_address.toLowerCase().includes('aviation')) {
+                                document.getElementById('aviation').checked = true;
+                                document.getElementById('airport').checked = false;
+                            }
+                        }
+
+                        if (pickupLocation && dropoffLocation) {
+                            calculateDistance();
+                        }
+                    };
+                    listEl.appendChild(item);
+                });
+
+                listEl.style.display = 'block';
+            } catch (error) {
+                console.error('Search error:', error);
+                listEl.style.display = 'none';
+            }
+        }
+
+        pickupInput.addEventListener('input', () => {
+            clearTimeout(pickupInput.searchTimeout);
+            pickupInput.searchTimeout = setTimeout(() => searchPlaces(pickupInput, pickupList, 'pickup'), 300);
+        });
+
+        dropoffInput.addEventListener('input', () => {
+            clearTimeout(dropoffInput.searchTimeout);
+            dropoffInput.searchTimeout = setTimeout(() => searchPlaces(dropoffInput, dropoffList, 'dropoff'), 300);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.location-input-wrapper')) {
+                pickupList.style.display = 'none';
+                dropoffList.style.display = 'none';
+            }
+        });
+
+        async function calculateDistance() {
+            if (!pickupLocation || !dropoffLocation) return;
+
+            try {
+                const response = await fetch('/fare/api/distance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        origin: { lat: pickupLocation.lat, lng: pickupLocation.lng },
+                        destination: { lat: dropoffLocation.lat, lng: dropoffLocation.lng }
+                    })
+                });
+
+                const data = await response.json();
+                distance = data.distance;
+                document.getElementById('distanceValue').textContent = distance.toFixed(2) + ' km';
+                document.getElementById('distanceDisplay').style.display = 'block';
+            } catch (error) {
+                console.error('Distance error:', error);
+            }
+        }
+
+        function calculate() {
+            if (!pickupLocation || !dropoffLocation || distance === 0) {
+                alert('Please select both locations');
+                return;
+            }
+
+            const passengers = parseInt(document.getElementById('passengers').value) || 1;
+            const luggage = parseInt(document.getElementById('luggage').value) || 0;
+            const isAirport = document.getElementById('airport').checked;
+            const isAviation = document.getElementById('aviation').checked;
+            const trunk = document.getElementById('trunk').checked;
+            const holiday = document.getElementById('holiday').checked;
+
+            const baseFare = 7;
+            const distanceFare = distance * 2;
+            const passengerFare = passengers > 4 ? (passengers - 4) * 3 : 0;
+            const locationFare = isAirport ? 10 : isAviation ? 15 : 0;
+            const luggageFare = luggage * 3;
+            const trunkFare = trunk ? 3 : 0;
+            const holidayFare = holiday ? 5 : 0;
+
+            let total = baseFare + distanceFare + passengerFare + locationFare + luggageFare + trunkFare + holidayFare;
+
+            let minFareApplied = false;
+            if (total < 10) {
+                total = 10;
+                minFareApplied = true;
+            }
+
+            document.getElementById('baseFareDisplay').textContent = '$' + baseFare.toFixed(2);
+            document.getElementById('kmDisplay').textContent = distance.toFixed(2);
+            document.getElementById('distanceFareDisplay').textContent = '$' + distanceFare.toFixed(2);
+
+            if (passengerFare > 0) {
+                document.getElementById('passengerFareDisplay').textContent = '$' + passengerFare.toFixed(2);
+                document.getElementById('passengerRow').classList.remove('hidden');
+            } else {
+                document.getElementById('passengerRow').classList.add('hidden');
+            }
+
+            if (locationFare > 0) {
+                document.getElementById('locationLabel').textContent = isAirport ? 'Airport' : 'Aviation';
+                document.getElementById('locationFareDisplay').textContent = '$' + locationFare.toFixed(2);
+                document.getElementById('locationRow').classList.remove('hidden');
+            } else {
+                document.getElementById('locationRow').classList.add('hidden');
+            }
+
+            if (luggageFare > 0) {
+                document.getElementById('luggageFareDisplay').textContent = '$' + luggageFare.toFixed(2);
+                document.getElementById('luggageRow').classList.remove('hidden');
+            } else {
+                document.getElementById('luggageRow').classList.add('hidden');
+            }
+
+            if (trunkFare > 0) {
+                document.getElementById('trunkFareDisplay').textContent = '$' + trunkFare.toFixed(2);
+                document.getElementById('trunkRow').classList.remove('hidden');
+            } else {
+                document.getElementById('trunkRow').classList.add('hidden');
+            }
+
+            if (holidayFare > 0) {
+                document.getElementById('holidayFareDisplay').textContent = '$' + holidayFare.toFixed(2);
+                document.getElementById('holidayRow').classList.remove('hidden');
+            } else {
+                document.getElementById('holidayRow').classList.add('hidden');
+            }
+
+            document.getElementById('totalFare').textContent = '$' + total.toFixed(2);
+            document.getElementById('totalFareDisplay').textContent = '$' + total.toFixed(2);
+            document.getElementById('minFareBadge').style.display = minFareApplied ? 'inline' : 'none';
+
+            document.getElementById('result').style.display = 'block';
+        }
+
+        document.getElementById('calcForm').addEventListener('reset', () => {
+            pickupLocation = null;
+            dropoffLocation = null;
+            distance = 0;
+            document.getElementById('distanceDisplay').style.display = 'none';
+            document.getElementById('result').style.display = 'none';
+        });
+
+        document.getElementById('airport').addEventListener('change', (e) => {
+            if (e.target.checked) document.getElementById('aviation').checked = false;
+        });
+
+        document.getElementById('aviation').addEventListener('change', (e) => {
+            if (e.target.checked) document.getElementById('airport').checked = false;
+        });
+    </script>
+</body>
+</html>

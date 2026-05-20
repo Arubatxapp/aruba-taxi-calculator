@@ -1,0 +1,14 @@
+{
+  "buildCommand": "npm install",
+  "functions": {
+    "api/search.js": {
+      "runtime": "node18.x"
+    },
+    "api/distance.js": {
+      "runtime": "node18.x"
+    }
+  },
+  "env": [
+    "GOOGLE_API_KEY"
+  ]
+}
