@@ -127,6 +127,77 @@
             font-size: 13px;
         }
 
+        .counters-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .counter-group {
+            flex: 1;
+        }
+
+        .counter {
+            display: flex;
+            align-items: stretch;
+            border: 2px solid #d4af37;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f8f9fa;
+        }
+
+        .counter-btn {
+            background: white;
+            border: none;
+            color: #1e5a8e;
+            font-size: 22px;
+            font-weight: 700;
+            width: 44px;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+            user-select: none;
+        }
+
+        .counter-btn:hover {
+            background: #f0f4f8;
+        }
+
+        .counter-btn:active {
+            background: #1e5a8e;
+            color: white;
+        }
+
+        .counter-btn:disabled {
+            color: #c8c8c8;
+            cursor: not-allowed;
+            background: white;
+        }
+
+        .counter input[type="number"] {
+            flex: 1;
+            border: none;
+            background: transparent;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e5a8e;
+            padding: 10px 0;
+            border-radius: 0;
+            -moz-appearance: textfield;
+            min-width: 0;
+        }
+
+        .counter input[type="number"]:focus {
+            background: transparent;
+            outline: none;
+        }
+
+        .counter input[type="number"]::-webkit-inner-spin-button,
+        .counter input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
         .result {
             display: none;
             margin-top: 30px;
@@ -236,14 +307,23 @@
                 <div class="autocomplete-list" id="dropoffList"></div>
             </div>
 
-            <div class="form-group">
-                <label for="passengers">Passengers (max 7)</label>
-                <input type="number" id="passengers" min="1" max="7" value="1">
-            </div>
-
-            <div class="form-group">
-                <label for="luggage">Extra Luggage (pieces)</label>
-                <input type="number" id="luggage" min="0" value="0">
+            <div class="counters-row">
+                <div class="counter-group">
+                    <label for="passengers">Passengers</label>
+                    <div class="counter">
+                        <button type="button" class="counter-btn" data-target="passengers" data-delta="-1" aria-label="Decrease passengers">−</button>
+                        <input type="number" id="passengers" min="1" max="7" value="1" inputmode="numeric">
+                        <button type="button" class="counter-btn" data-target="passengers" data-delta="1" aria-label="Increase passengers">+</button>
+                    </div>
+                </div>
+                <div class="counter-group">
+                    <label for="luggage">Luggage</label>
+                    <div class="counter">
+                        <button type="button" class="counter-btn" data-target="luggage" data-delta="-1" aria-label="Decrease luggage">−</button>
+                        <input type="number" id="luggage" min="0" value="0" inputmode="numeric">
+                        <button type="button" class="counter-btn" data-target="luggage" data-delta="1" aria-label="Increase luggage">+</button>
+                    </div>
+                </div>
             </div>
 
             <div class="form-group">
@@ -527,11 +607,45 @@
             document.getElementById('result').style.display = 'block';
         }
 
+        // ---- Stepper +/- buttons -------------------------------------------
+        function updateStepperButtons(input) {
+            const min = input.min !== '' ? parseInt(input.min) : -Infinity;
+            const max = input.max !== '' ? parseInt(input.max) : Infinity;
+            const val = parseInt(input.value) || 0;
+            input.parentElement.querySelector('.counter-btn[data-delta="-1"]').disabled = val <= min;
+            input.parentElement.querySelector('.counter-btn[data-delta="1"]').disabled = val >= max;
+        }
+
+        document.querySelectorAll('.counter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = document.getElementById(btn.dataset.target);
+                const delta = parseInt(btn.dataset.delta);
+                const min = target.min !== '' ? parseInt(target.min) : -Infinity;
+                const max = target.max !== '' ? parseInt(target.max) : Infinity;
+                let val = (parseInt(target.value) || 0) + delta;
+                if (val < min) val = min;
+                if (val > max) val = max;
+                target.value = val;
+                target.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+        });
+
         // ---- Live recalculation on input changes ---------------------------
         ['passengers', 'luggage', 'trunk'].forEach(id => {
-            document.getElementById(id).addEventListener('input', calculate);
-            document.getElementById(id).addEventListener('change', calculate);
+            const el = document.getElementById(id);
+            el.addEventListener('input', () => {
+                if (el.type === 'number') updateStepperButtons(el);
+                calculate();
+            });
+            el.addEventListener('change', () => {
+                if (el.type === 'number') updateStepperButtons(el);
+                calculate();
+            });
         });
+
+        // Initialize +/- button enabled/disabled state on load
+        updateStepperButtons(document.getElementById('passengers'));
+        updateStepperButtons(document.getElementById('luggage'));
 
         // ---- Reset ---------------------------------------------------------
         document.getElementById('calcForm').addEventListener('reset', () => {
