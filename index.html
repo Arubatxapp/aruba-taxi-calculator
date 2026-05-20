@@ -249,20 +249,8 @@
             </div>
 
             <div class="form-group">
-                <label for="passengers">Passengers</label>
-                <input type="number" id="passengers" min="1" max="20" value="1">
-            </div>
-
-            <div class="form-group">
-                <label>Location Type</label>
-                <div class="checkbox-item">
-                    <input type="checkbox" id="airport">
-                    <label for="airport">Airport (+$10)</label>
-                </div>
-                <div class="checkbox-item">
-                    <input type="checkbox" id="aviation">
-                    <label for="aviation">Aviation (+$15)</label>
-                </div>
+                <label for="passengers">Passengers (max 7)</label>
+                <input type="number" id="passengers" min="1" max="7" value="1">
             </div>
 
             <div class="form-group">
@@ -275,10 +263,6 @@
                 <div class="checkbox-item">
                     <input type="checkbox" id="trunk">
                     <label for="trunk">Trunk Use (+$3)</label>
-                </div>
-                <div class="checkbox-item">
-                    <input type="checkbox" id="holiday">
-                    <label for="holiday">Holiday/Night (+$5)</label>
                 </div>
             </div>
 
@@ -320,7 +304,7 @@
                     <span id="trunkFareDisplay">$0.00</span>
                 </div>
                 <div class="breakdown-item hidden" id="holidayRow">
-                    <span>Holiday/Night</span>
+                    <span id="holidayLabel">Holiday/Night</span>
                     <span id="holidayFareDisplay">$0.00</span>
                 </div>
 
@@ -342,6 +326,31 @@
         const pickupList = document.getElementById('pickupList');
         const dropoffList = document.getElementById('dropoffList');
 
+        // ---- Location classification ---------------------------------------
+        // Aviation keywords win over airport keywords (more specific).
+        const AVIATION_KEYWORDS = ['tnca', 'fbo', 'general aviation', 'private aviation', 'jet aruba'];
+        const AIRPORT_KEYWORDS = ['airport', 'queen beatrix', 'beatrix international', 'aua airport'];
+
+        function classifyLocation(address) {
+            const s = (address || '').toLowerCase();
+            if (AVIATION_KEYWORDS.some(k => s.includes(k))) return 'aviation';
+            if (AIRPORT_KEYWORDS.some(k => s.includes(k))) return 'airport';
+            return null;
+        }
+
+        // ---- Time-based surcharge (Aruba local time) -----------------------
+        function getArubaSurcharge() {
+            // Convert current instant to Aruba local time. Aruba is UTC-4, no DST,
+            // but using IANA name keeps us safe if that ever changes.
+            const arubaNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Aruba' }));
+            const day = arubaNow.getDay();       // 0 = Sunday
+            const hour = arubaNow.getHours();    // 0-23
+            if (day === 0) return { applies: true, reason: 'Sunday' };
+            if (hour >= 23 || hour < 7) return { applies: true, reason: 'Night (11pm–7am)' };
+            return { applies: false, reason: null };
+        }
+
+        // ---- Autocomplete --------------------------------------------------
         async function searchPlaces(input, listEl, type) {
             if (input.value.length < 2) {
                 listEl.style.display = 'none';
@@ -362,7 +371,6 @@
                 }
 
                 const results = await response.json();
-                console.log('Search results:', results);
                 listEl.innerHTML = '';
 
                 if (!results || results.length === 0) {
@@ -380,27 +388,15 @@
                         input.title = place.formatted_address;
                         listEl.style.display = 'none';
 
-                        if (type === 'pickup') {
-                            pickupLocation = {
-                                lat: place.lat,
-                                lng: place.lng,
-                                name: place.formatted_address
-                            };
-                            if (place.formatted_address.toLowerCase().includes('airport') || place.formatted_address.toLowerCase().includes('beatrix')) {
-                                document.getElementById('airport').checked = true;
-                                document.getElementById('aviation').checked = false;
-                            }
-                        } else {
-                            dropoffLocation = {
-                                lat: place.lat,
-                                lng: place.lng,
-                                name: place.formatted_address
-                            };
-                            if (place.formatted_address.toLowerCase().includes('aviation')) {
-                                document.getElementById('aviation').checked = true;
-                                document.getElementById('airport').checked = false;
-                            }
-                        }
+                        const loc = {
+                            lat: place.lat,
+                            lng: place.lng,
+                            name: place.formatted_address,
+                            type: classifyLocation(place.formatted_address)
+                        };
+
+                        if (type === 'pickup') pickupLocation = loc;
+                        else dropoffLocation = loc;
 
                         if (pickupLocation && dropoffLocation) {
                             calculateDistance();
@@ -433,6 +429,7 @@
             }
         });
 
+        // ---- Distance ------------------------------------------------------
         async function calculateDistance() {
             if (!pickupLocation || !dropoffLocation) return;
 
@@ -460,31 +457,52 @@
                     dropoff: dropoffLocation,
                     googleMapsCompareUrl: `https://www.google.com/maps/dir/${pickupLocation.lat},${pickupLocation.lng}/${dropoffLocation.lat},${dropoffLocation.lng}`
                 });
+                calculate(); // auto-recalc as soon as the distance is in
             } catch (error) {
                 console.error('Distance error:', error);
             }
         }
 
+        // ---- Fare calculation ---------------------------------------------
         function calculate() {
-            if (!pickupLocation || !dropoffLocation || distance === 0) {
-                alert('Please select both locations');
-                return;
+            // Silently bail if we don't have enough info yet (called from auto-recalc).
+            if (!pickupLocation || !dropoffLocation || distance === 0) return;
+
+            // Clamp passengers to 1-7.
+            let passengers = parseInt(document.getElementById('passengers').value) || 1;
+            if (passengers < 1) passengers = 1;
+            if (passengers > 7) {
+                passengers = 7;
+                document.getElementById('passengers').value = 7;
             }
 
-            const passengers = parseInt(document.getElementById('passengers').value) || 1;
-            const luggage = parseInt(document.getElementById('luggage').value) || 0;
-            const isAirport = document.getElementById('airport').checked;
-            const isAviation = document.getElementById('aviation').checked;
+            const luggage = Math.max(0, parseInt(document.getElementById('luggage').value) || 0);
             const trunk = document.getElementById('trunk').checked;
-            const holiday = document.getElementById('holiday').checked;
+
+            // Auto-detect airport / aviation from selected pickup or dropoff.
+            // Aviation wins over Airport if either side is aviation.
+            const types = [pickupLocation.type, dropoffLocation.type];
+            let locationType = null, locationFare = 0, locationLabel = '';
+            if (types.includes('aviation')) {
+                locationType = 'aviation';
+                locationFare = 15;
+                locationLabel = 'Aviation';
+            } else if (types.includes('airport')) {
+                locationType = 'airport';
+                locationFare = 10;
+                locationLabel = 'Airport';
+            }
+
+            // Auto-detect Sunday or 11pm-7am surcharge using Aruba local time.
+            const surcharge = getArubaSurcharge();
+            const holidayFare = surcharge.applies ? 5 : 0;
+            const holidayLabel = surcharge.applies ? `Holiday/Night (${surcharge.reason})` : 'Holiday/Night';
 
             const baseFare = 7;
             const distanceFare = distance * 2;
             const passengerFare = passengers > 4 ? (passengers - 4) * 3 : 0;
-            const locationFare = isAirport ? 10 : isAviation ? 15 : 0;
             const luggageFare = luggage * 3;
             const trunkFare = trunk ? 3 : 0;
-            const holidayFare = holiday ? 5 : 0;
 
             let total = baseFare + distanceFare + passengerFare + locationFare + luggageFare + trunkFare + holidayFare;
 
@@ -498,41 +516,21 @@
             document.getElementById('kmDisplay').textContent = distance.toFixed(2);
             document.getElementById('distanceFareDisplay').textContent = '$' + distanceFare.toFixed(2);
 
-            if (passengerFare > 0) {
-                document.getElementById('passengerFareDisplay').textContent = '$' + passengerFare.toFixed(2);
-                document.getElementById('passengerRow').classList.remove('hidden');
-            } else {
-                document.getElementById('passengerRow').classList.add('hidden');
-            }
+            const setRow = (rowId, displayId, amount, label, labelId) => {
+                if (amount > 0) {
+                    document.getElementById(displayId).textContent = '$' + amount.toFixed(2);
+                    if (labelId && label != null) document.getElementById(labelId).textContent = label;
+                    document.getElementById(rowId).classList.remove('hidden');
+                } else {
+                    document.getElementById(rowId).classList.add('hidden');
+                }
+            };
 
-            if (locationFare > 0) {
-                document.getElementById('locationLabel').textContent = isAirport ? 'Airport' : 'Aviation';
-                document.getElementById('locationFareDisplay').textContent = '$' + locationFare.toFixed(2);
-                document.getElementById('locationRow').classList.remove('hidden');
-            } else {
-                document.getElementById('locationRow').classList.add('hidden');
-            }
-
-            if (luggageFare > 0) {
-                document.getElementById('luggageFareDisplay').textContent = '$' + luggageFare.toFixed(2);
-                document.getElementById('luggageRow').classList.remove('hidden');
-            } else {
-                document.getElementById('luggageRow').classList.add('hidden');
-            }
-
-            if (trunkFare > 0) {
-                document.getElementById('trunkFareDisplay').textContent = '$' + trunkFare.toFixed(2);
-                document.getElementById('trunkRow').classList.remove('hidden');
-            } else {
-                document.getElementById('trunkRow').classList.add('hidden');
-            }
-
-            if (holidayFare > 0) {
-                document.getElementById('holidayFareDisplay').textContent = '$' + holidayFare.toFixed(2);
-                document.getElementById('holidayRow').classList.remove('hidden');
-            } else {
-                document.getElementById('holidayRow').classList.add('hidden');
-            }
+            setRow('passengerRow', 'passengerFareDisplay', passengerFare);
+            setRow('locationRow', 'locationFareDisplay', locationFare, locationLabel, 'locationLabel');
+            setRow('luggageRow', 'luggageFareDisplay', luggageFare);
+            setRow('trunkRow', 'trunkFareDisplay', trunkFare);
+            setRow('holidayRow', 'holidayFareDisplay', holidayFare, holidayLabel, 'holidayLabel');
 
             document.getElementById('totalFare').textContent = '$' + total.toFixed(2);
             document.getElementById('totalFareDisplay').textContent = '$' + total.toFixed(2);
@@ -541,19 +539,18 @@
             document.getElementById('result').style.display = 'block';
         }
 
+        // ---- Live recalculation on input changes ---------------------------
+        ['passengers', 'luggage', 'trunk'].forEach(id => {
+            document.getElementById(id).addEventListener('input', calculate);
+            document.getElementById(id).addEventListener('change', calculate);
+        });
+
+        // ---- Reset ---------------------------------------------------------
         document.getElementById('calcForm').addEventListener('reset', () => {
             pickupLocation = null;
             dropoffLocation = null;
             distance = 0;
             document.getElementById('result').style.display = 'none';
-        });
-
-        document.getElementById('airport').addEventListener('change', (e) => {
-            if (e.target.checked) document.getElementById('aviation').checked = false;
-        });
-
-        document.getElementById('aviation').addEventListener('change', (e) => {
-            if (e.target.checked) document.getElementById('airport').checked = false;
         });
     </script>
 </body>
