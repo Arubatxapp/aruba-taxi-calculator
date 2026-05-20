@@ -1,13 +1,5 @@
 {
   "name": "aruba-taxi-calculator",
   "version": "1.0.0",
-  "description": "Aruba Taxi Fare Calculator",
-  "main": "api/search.js",
-  "type": "module",
-  "scripts": {
-    "start": "node api/search.js"
-  },
-  "dependencies": {
-    "axios": "^1.4.0"
-  }
+  "description": "Aruba Taxi Fare Calculator"
 }
