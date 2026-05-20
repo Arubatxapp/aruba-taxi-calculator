@@ -248,11 +248,6 @@
                 <div class="autocomplete-list" id="dropoffList"></div>
             </div>
 
-            <div id="distanceDisplay" style="text-align: center; background: #f0f4f8; padding: 15px; border-radius: 8px; border: 2px solid #d4af37; margin-bottom: 20px; display: none;">
-                <div style="color: #1e5a8e; font-weight: 700; font-size: 14px; margin-bottom: 5px;">Distance</div>
-                <div style="color: #d4af37; font-size: 24px; font-weight: 800;" id="distanceValue">0 km</div>
-            </div>
-
             <div class="form-group">
                 <label for="passengers">Passengers</label>
                 <input type="number" id="passengers" min="1" max="20" value="1">
@@ -458,8 +453,12 @@
 
                 const data = await response.json();
                 distance = data.distance;
-                document.getElementById('distanceValue').textContent = distance.toFixed(2) + ' km';
-                document.getElementById('distanceDisplay').style.display = 'block';
+                console.log('Distance result:', {
+                    km: distance,
+                    pickup: pickupLocation,
+                    dropoff: dropoffLocation,
+                    googleMapsCompareUrl: `https://www.google.com/maps/dir/${pickupLocation.lat},${pickupLocation.lng}/${dropoffLocation.lat},${dropoffLocation.lng}`
+                });
             } catch (error) {
                 console.error('Distance error:', error);
             }
@@ -545,7 +544,6 @@
             pickupLocation = null;
             dropoffLocation = null;
             distance = 0;
-            document.getElementById('distanceDisplay').style.display = 'none';
             document.getElementById('result').style.display = 'none';
         });
 
