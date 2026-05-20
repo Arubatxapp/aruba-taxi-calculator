@@ -454,7 +454,8 @@
                 const data = await response.json();
                 distance = data.distance;
                 console.log('Distance result:', {
-                    km: distance,
+                    pickedKm: distance,
+                    allRoutesKm: data.allRoutesKm,
                     pickup: pickupLocation,
                     dropoff: dropoffLocation,
                     googleMapsCompareUrl: `https://www.google.com/maps/dir/${pickupLocation.lat},${pickupLocation.lng}/${dropoffLocation.lat},${dropoffLocation.lng}`
