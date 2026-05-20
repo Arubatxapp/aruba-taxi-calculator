@@ -11,20 +11,39 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: 'API key not configured' });
         }
 
-        const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query + ' Aruba')}&components=country:AW&key=${apiKey}`;
+        // Use Google Places Text Search API — returns multiple matching places
+        // for partial-text queries (the Geocoding API only returns full address matches).
+        // Bias results to Aruba: center ~12.5211, -69.9683, radius 20km covers the island.
+        const url = `https://maps.googleapis.com/maps/api/place/textsearch/json` +
+            `?query=${encodeURIComponent(query)}` +
+            `&location=12.5211,-69.9683` +
+            `&radius=20000` +
+            `&region=aw` +
+            `&key=${apiKey}`;
 
         const response = await fetch(url);
         const data = await response.json();
 
         if (data.status === 'OK') {
-            const results = data.results.map(result => ({
-                formatted_address: result.formatted_address,
-                lat: result.geometry.location.lat,
-                lng: result.geometry.location.lng
-            }));
+            const results = data.results
+                .filter(r => r.geometry && r.geometry.location)
+                .map(result => ({
+                    formatted_address: result.name
+                        ? `${result.name}, ${result.formatted_address || ''}`.replace(/,\s*$/, '')
+                        : result.formatted_address,
+                    lat: result.geometry.location.lat,
+                    lng: result.geometry.location.lng
+                }));
             res.status(200).json(results);
-        } else {
+        } else if (data.status === 'ZERO_RESULTS') {
             res.status(200).json([]);
+        } else {
+            console.error('Places API error:', data.status, data.error_message);
+            res.status(500).json({
+                error: 'Places API error',
+                status: data.status,
+                message: data.error_message || null
+            });
         }
     } catch (error) {
         console.error('Search error:', error);
